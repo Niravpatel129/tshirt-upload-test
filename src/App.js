@@ -1,57 +1,63 @@
 import { saveAs } from 'file-saver';
-import { toPng } from 'html-to-image';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import FileBase64 from 'react-file-base64';
 
 function App() {
   const [file, setFile] = useState('');
+  const [designLoaded, setDesignLoaded] = useState(false);
+  const tshirtImage = 'https://i.ebayimg.com/images/g/AmAAAOSwuaFZ4TcY/s-l1200.jpg';
+  const canvasRef = useRef(null);
 
-  const tshirtImage = 'https://i.ebayimg.com/images/g/AmAAAOSwuaFZ4TcY/s-l1200.jpg'; // URL of the blank t-shirt
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    const tshirtImg = new Image();
+    const designImg = new Image();
+
+    // Set crossOrigin to anonymous for CORS
+    tshirtImg.crossOrigin = 'anonymous';
+    designImg.crossOrigin = 'anonymous';
+
+    tshirtImg.onload = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(tshirtImg, 0, 0, canvas.width, canvas.height);
+      if (designLoaded) {
+        context.drawImage(designImg, 150, 150, 300, 400);
+      }
+    };
+
+    tshirtImg.src = tshirtImage;
+
+    if (file) {
+      designImg.onload = () => {
+        setDesignLoaded(true);
+        context.drawImage(designImg, 150, 150, 300, 400);
+      };
+      designImg.src = file;
+    }
+  }, [file, designLoaded]);
 
   const handleExport = () => {
-    toPng(document.getElementById('tshirt-container'), { cacheBust: true })
-      .then(function (dataUrl) {
-        saveAs(dataUrl, 'custom-t-shirt.png');
-      })
-      .catch(function (error) {
-        console.error('Failed to export design', error);
-      });
+    const canvas = canvasRef.current;
+    canvas.toBlob(function (blob) {
+      saveAs(blob, 'custom-t-shirt.png');
+    });
   };
 
   return (
     <div className='App' style={{ textAlign: 'center' }}>
       <h1>Custom T-Shirt Designer</h1>
       <FileBase64 multiple={false} onDone={({ base64 }) => setFile(base64)} />
-      <div
-        id='tshirt-container'
+      <canvas
+        ref={canvasRef}
+        width={600}
+        height={700}
         style={{
-          width: '600px',
-          height: '700px',
-          position: 'relative',
-          margin: '20px auto',
           border: '1px solid #ccc',
+          margin: '20px auto',
+          display: 'block',
         }}
-      >
-        <img
-          src={tshirtImage}
-          alt='T-Shirt'
-          style={{ width: '100%', height: '100%', position: 'absolute', top: '0', left: '0' }}
-        />
-        {file && (
-          <img
-            src={file}
-            alt='Design'
-            style={{
-              width: '300px',
-              height: '400px',
-              position: 'absolute',
-              top: '150px',
-              left: '150px',
-              objectFit: 'cover',
-            }}
-          />
-        )}
-      </div>
+      ></canvas>
       <button onClick={handleExport}>Export</button>
     </div>
   );
