@@ -4,6 +4,7 @@ import FileBase64 from 'react-file-base64';
 
 function App() {
   const [file, setFile] = useState('');
+  const [showIndicator, setShowIndicator] = useState(false);
   const [designLoaded, setDesignLoaded] = useState(false);
   const [dragStart, setDragStart] = useState(null);
   const [resizeStart, setResizeStart] = useState(null);
@@ -33,8 +34,8 @@ function App() {
         const handleSize = 10; // Size of the resize handle
         const handleX = position.x + size.width - handleSize / 2; // X position of the handle
         const handleY = position.y + size.height - handleSize / 2; // Y position of the handle
-        context.fillStyle = 'red'; // Color of the handle
         context.fillRect(handleX, handleY, handleSize, handleSize); // Drawing the handle
+        context.fillStyle = !showIndicator ? 'transparent' : 'blue'; // Color of the handle
       }
     };
 
@@ -138,6 +139,9 @@ function App() {
         height={700}
         style={{ border: '1px solid #ccc', margin: '20px auto', display: 'block' }}
       ></canvas>
+      <button onClick={() => setShowIndicator(!showIndicator)}>
+        Show Indicator {showIndicator ? 'true' : 'fase'}
+      </button>
       <button onClick={handleExport}>Export</button>
     </div>
   );
