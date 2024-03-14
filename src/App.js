@@ -6,6 +6,7 @@ function App() {
   const [file, setFile] = useState('');
   const [designLoaded, setDesignLoaded] = useState(false);
   const [dragStart, setDragStart] = useState(null);
+  const [resizeStart, setResizeStart] = useState(null);
   const [position, setPosition] = useState({ x: 150, y: 150 });
   const [size, setSize] = useState({ width: 300, height: 400 });
   const tshirtImage = 'https://i.ebayimg.com/images/g/AmAAAOSwuaFZ4TcY/s-l1200.jpg';
@@ -43,15 +44,26 @@ function App() {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
+      // Check for resize
       if (
+        mouseX > position.x + size.width - 10 &&
+        mouseX < position.x + size.width + 10 &&
+        mouseY > position.y + size.height - 10 &&
+        mouseY < position.y + size.height + 10
+      ) {
+        setResizeStart({ x: mouseX, y: mouseY });
+        setDragStart(null); // Prevent dragging when resizing
+      } else if (
         mouseX > position.x &&
         mouseX < position.x + size.width &&
         mouseY > position.y &&
         mouseY < position.y + size.height
       ) {
         setDragStart({ x: mouseX - position.x, y: mouseY - position.y });
+        setResizeStart(null); // Prevent resizing when dragging
       } else {
         setDragStart(null);
+        setResizeStart(null);
       }
     };
 
@@ -65,11 +77,22 @@ function App() {
           y: mouseY - dragStart.y,
         });
         draw();
+      } else if (resizeStart) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        setSize({
+          width: Math.max(100, size.width + mouseX - resizeStart.x),
+          height: Math.max(100, size.height + mouseY - resizeStart.y),
+        });
+        setResizeStart({ x: mouseX, y: mouseY });
+        draw();
       }
     };
 
     const handleMouseUp = () => {
       setDragStart(null);
+      setResizeStart(null);
     };
 
     canvas.addEventListener('mousedown', handleMouseDown);
@@ -81,7 +104,7 @@ function App() {
       canvas.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [file, designLoaded, position, dragStart, size]);
+  }, [file, designLoaded, position, dragStart, resizeStart, size]);
 
   const handleExport = () => {
     const canvas = canvasRef.current;
