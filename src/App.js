@@ -9,8 +9,7 @@ function App() {
   const [resizeStart, setResizeStart] = useState(null);
   const [position, setPosition] = useState({ x: 150, y: 150 });
   const [size, setSize] = useState({ width: 300, height: 400 });
-  const [showHandle, setShowHandle] = useState(false); // State to manage handle visibility
-  const aspectRatio = size.width / size.height;
+  const aspectRatio = size.width / size.height; // Calculate aspect ratio of the design image
   const tshirtImage =
     'https://media.gq.com/photos/6401155ff7ebd0f74ae66ae0/3:4/w_2580%2Cc_limit/white-tee.jpg';
   const canvasRef = useRef(null);
@@ -30,19 +29,12 @@ function App() {
       if (designLoaded) {
         context.drawImage(designImg, position.x, position.y, size.width, size.height);
 
-        if (showHandle) {
-          // Drawing a more visually appealing handle
-          const radius = 8; // Radius of the circle handle
-          const handleX = position.x + size.width; // Adjusting for the handle position
-          const handleY = position.y + size.height; // Adjusting for the handle position
-          context.beginPath();
-          context.arc(handleX, handleY, radius, 0, 2 * Math.PI);
-          context.fillStyle = '#00FF00'; // Handle color
-          context.fill();
-          context.lineWidth = 2;
-          context.strokeStyle = '#003300'; // Stroke color
-          context.stroke();
-        }
+        // Draw resize handle
+        const handleSize = 10; // Size of the resize handle
+        const handleX = position.x + size.width - handleSize / 2; // X position of the handle
+        const handleY = position.y + size.height - handleSize / 2; // Y position of the handle
+        context.fillStyle = 'red'; // Color of the handle
+        context.fillRect(handleX, handleY, handleSize, handleSize); // Drawing the handle
       }
     };
 
@@ -61,7 +53,6 @@ function App() {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      // Resize logic
       if (
         mouseX > position.x + size.width - 10 &&
         mouseX < position.x + size.width + 10 &&
@@ -69,7 +60,7 @@ function App() {
         mouseY < position.y + size.height + 10
       ) {
         setResizeStart({ x: mouseX, y: mouseY });
-        setDragStart(null);
+        setDragStart(null); // Prevent dragging when resizing
       } else if (
         mouseX > position.x &&
         mouseX < position.x + size.width &&
@@ -77,7 +68,7 @@ function App() {
         mouseY < position.y + size.height
       ) {
         setDragStart({ x: mouseX - position.x, y: mouseY - position.y });
-        setResizeStart(null);
+        setResizeStart(null); // Prevent resizing when dragging
       } else {
         setDragStart(null);
         setResizeStart(null);
@@ -95,16 +86,19 @@ function App() {
         });
         draw();
       } else if (resizeStart) {
-        let newWidth = Math.max(100, size.width + mouseX - resizeStart.x);
-        let newHeight = Math.max(100, size.height + mouseY - resizeStart.y);
         if (e.shiftKey) {
-          const newSize = Math.max(newWidth, newHeight);
+          // Maintain aspect ratio if Shift is held
+          let diff = Math.min(mouseX - resizeStart.x, mouseY - resizeStart.y);
           setSize({
-            width: newSize,
-            height: newSize / aspectRatio,
+            width: Math.max(100, size.width + diff * aspectRatio),
+            height: Math.max(100, (size.width + diff * aspectRatio) / aspectRatio),
           });
         } else {
-          setSize({ width: newWidth, height: newHeight });
+          // Default resize behavior
+          setSize({
+            width: Math.max(100, size.width + mouseX - resizeStart.x),
+            height: Math.max(100, size.height + mouseY - resizeStart.y),
+          });
         }
         setResizeStart({ x: mouseX, y: mouseY });
         draw();
@@ -116,33 +110,16 @@ function App() {
       setResizeStart(null);
     };
 
-    // New function to toggle handle visibility
-    const handleDesignClick = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      if (
-        mouseX > position.x &&
-        mouseX < position.x + size.width &&
-        mouseY > position.y &&
-        mouseY < position.y + size.height
-      ) {
-        setShowHandle(!showHandle);
-      }
-    };
-
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-    canvas.addEventListener('click', handleDesignClick);
 
     return () => {
       canvas.removeEventListener('mousedown', handleMouseDown);
       canvas.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      canvas.removeEventListener('click', handleDesignClick);
     };
-  }, [file, designLoaded, position, dragStart, resizeStart, size, aspectRatio, showHandle]);
+  }, [file, designLoaded, position, dragStart, resizeStart, size, aspectRatio]);
 
   const handleExport = () => {
     const canvas = canvasRef.current;
