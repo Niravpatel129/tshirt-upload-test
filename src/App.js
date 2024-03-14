@@ -9,7 +9,10 @@ function App() {
   const [resizeStart, setResizeStart] = useState(null);
   const [position, setPosition] = useState({ x: 150, y: 150 });
   const [size, setSize] = useState({ width: 300, height: 400 });
-  const tshirtImage = 'https://i.ebayimg.com/images/g/AmAAAOSwuaFZ4TcY/s-l1200.jpg';
+  const [showHandle, setShowHandle] = useState(false); // State to manage handle visibility
+  const aspectRatio = size.width / size.height;
+  const tshirtImage =
+    'https://media.gq.com/photos/6401155ff7ebd0f74ae66ae0/3:4/w_2580%2Cc_limit/white-tee.jpg';
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -26,6 +29,20 @@ function App() {
       context.drawImage(tshirtImg, 0, 0, canvas.width, canvas.height);
       if (designLoaded) {
         context.drawImage(designImg, position.x, position.y, size.width, size.height);
+
+        if (showHandle) {
+          // Drawing a more visually appealing handle
+          const radius = 8; // Radius of the circle handle
+          const handleX = position.x + size.width; // Adjusting for the handle position
+          const handleY = position.y + size.height; // Adjusting for the handle position
+          context.beginPath();
+          context.arc(handleX, handleY, radius, 0, 2 * Math.PI);
+          context.fillStyle = '#00FF00'; // Handle color
+          context.fill();
+          context.lineWidth = 2;
+          context.strokeStyle = '#003300'; // Stroke color
+          context.stroke();
+        }
       }
     };
 
@@ -44,7 +61,7 @@ function App() {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      // Check for resize
+      // Resize logic
       if (
         mouseX > position.x + size.width - 10 &&
         mouseX < position.x + size.width + 10 &&
@@ -52,7 +69,7 @@ function App() {
         mouseY < position.y + size.height + 10
       ) {
         setResizeStart({ x: mouseX, y: mouseY });
-        setDragStart(null); // Prevent dragging when resizing
+        setDragStart(null);
       } else if (
         mouseX > position.x &&
         mouseX < position.x + size.width &&
@@ -60,7 +77,7 @@ function App() {
         mouseY < position.y + size.height
       ) {
         setDragStart({ x: mouseX - position.x, y: mouseY - position.y });
-        setResizeStart(null); // Prevent resizing when dragging
+        setResizeStart(null);
       } else {
         setDragStart(null);
         setResizeStart(null);
@@ -68,23 +85,27 @@ function App() {
     };
 
     const handleMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
       if (dragStart) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
         setPosition({
           x: mouseX - dragStart.x,
           y: mouseY - dragStart.y,
         });
         draw();
       } else if (resizeStart) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        setSize({
-          width: Math.max(100, size.width + mouseX - resizeStart.x),
-          height: Math.max(100, size.height + mouseY - resizeStart.y),
-        });
+        let newWidth = Math.max(100, size.width + mouseX - resizeStart.x);
+        let newHeight = Math.max(100, size.height + mouseY - resizeStart.y);
+        if (e.shiftKey) {
+          const newSize = Math.max(newWidth, newHeight);
+          setSize({
+            width: newSize,
+            height: newSize / aspectRatio,
+          });
+        } else {
+          setSize({ width: newWidth, height: newHeight });
+        }
         setResizeStart({ x: mouseX, y: mouseY });
         draw();
       }
@@ -95,16 +116,33 @@ function App() {
       setResizeStart(null);
     };
 
+    // New function to toggle handle visibility
+    const handleDesignClick = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      if (
+        mouseX > position.x &&
+        mouseX < position.x + size.width &&
+        mouseY > position.y &&
+        mouseY < position.y + size.height
+      ) {
+        setShowHandle(!showHandle);
+      }
+    };
+
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('click', handleDesignClick);
 
     return () => {
       canvas.removeEventListener('mousedown', handleMouseDown);
       canvas.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('click', handleDesignClick);
     };
-  }, [file, designLoaded, position, dragStart, resizeStart, size]);
+  }, [file, designLoaded, position, dragStart, resizeStart, size, aspectRatio, showHandle]);
 
   const handleExport = () => {
     const canvas = canvasRef.current;
